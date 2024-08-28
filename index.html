@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Click ID Testing</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Click ID Testing</h1>
+  <div>
+    <h2>Generate Click ID</h2>
+    <form id="generateClickForm">
+      <label for="userId">User ID:</label>
+      <input type="number" id="userId" name="userId" required>
+      <button type="submit">Generate Click ID</button>
+    </form>
+    <p id="clickIdResult"></p>
+  </div>
+
+  <div>
+    <h2>Simulate User Click</h2>
+    <button id="simulateClickBtn" disabled>Simulate Click</button>
+  </div>
+
+  <div>
+    <h2>Simulate Postback</h2>
+    <form id="postbackForm">
+      <label for="afTranid">Transaction ID:</label>
+      <input type="text" id="afTranid" name="afTranid" required>
+      <label for="clickId">Click ID:</label>
+      <input type="text" id="clickId" name="clickId" required>
+      <button type="submit">Send Postback</button>
+    </form>
+    <p id="postbackResult"></p>
+  </div>
+
+  <div>
+    <h2>Check User Wallet</h2>
+    <form id="checkWalletForm">
+      <label for="walletUserId">User ID:</label>
+      <input type="number" id="walletUserId" name="walletUserId" required>
+      <button type="submit">Check Wallet</button>
+    </form>
+    <p id="walletResult"></p>
+  </div>
+
+  <script>
+    const generateClickForm = document.getElementById('generateClickForm');
+    const clickIdResult = document.getElementById('clickIdResult');
+    const simulateClickBtn = document.getElementById('simulateClickBtn');
+    const postbackForm = document.getElementById('postbackForm');
+    const postbackResult = document.getElementById('postbackResult');
+    const checkWalletForm = document.getElementById('checkWalletForm');
+    const walletResult = document.getElementById('walletResult');
+
+    let currentClickId = '';
+
+    generateClickForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userId = document.getElementById('userId').value;
+
+      const response = await fetch('http://localhost:3001/click/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_id: userId })
+      });
+
+      const data = await response.json();
+      currentClickId = data.click_id;
+      clickIdResult.textContent = `Generated Click ID: ${currentClickId}`;
+      document.getElementById('clickId').value = currentClickId;
+      simulateClickBtn.disabled = false;
+    });
+
+    simulateClickBtn.addEventListener('click', () => {
+      const affiliateLink = `http://paychat.fuse-cloud.com/tl?a=2&o=2607&aff_click_id=${currentClickId}&sub_affid=someSubAffID&user_id=${userId}`;
+      window.open(affiliateLink, '_blank');
+    });
+
+    postbackForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const afTranid = document.getElementById('afTranid').value;
+      const clickId = document.getElementById('clickId').value;
+
+      const response = await fetch(`http://localhost:3001/postback/appsFlyerPostback?af_tranid=${afTranid}&click_id=${clickId}`);
+      const data = await response.json();
+      postbackResult.textContent = JSON.stringify(data);
+    });
+
+    checkWalletForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userId = document.getElementById('walletUserId').value;
+
+      const response = await fetch(`http://localhost:3001/api/wallet/update/${userId}`);
+      const data = await response.json();
+      walletResult.textContent = JSON.stringify(data);
+    });
+  </script>
+</body>
+</html>
