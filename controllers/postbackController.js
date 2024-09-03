@@ -1,18 +1,31 @@
+const axios = require('axios');
 const { Wallet, Click, Campaign } = require('../models');
 
 const handlePostback = async (req, res) => {
-  const { af_tranid, click_id } = req.query;
+  const { tid } = req.query; // Extract tid from the frontend request
 
-  if (!af_tranid || !click_id) {
-    return res.status(400).json({ status: 'failure', message: 'Missing parameters' });
+  if (!tid) {
+    return res.status(400).json({ status: 'failure', message: 'Missing tid parameter' });
   }
 
   try {
-    const click = await Click.findOne({ where: { click_id }, include: Campaign });
+    // Find the click record in the database with the associated campaign
+    const click = await Click.findOne({ where: { click_id: tid }, include: Campaign });
 
     if (click) {
       const coins = click.Campaign.coins; // Get the coins value from the associated campaign
       await rewardUser(click.user_id, coins);
+
+      // Fire postback to the given URL with tid as a parameter
+      const postbackUrl = `http://paychat.fuse-cloud.com/pb?tid=${encodeURIComponent(tid)}`;
+
+      try {
+        const response = await axios.get(postbackUrl);
+        console.log("Postback fired: ", response.data);
+      } catch (error) {
+        console.error("Error firing postback: ", error);
+      }
+
       return res.status(200).json({ status: 'success' });
     } else {
       return res.status(404).json({ status: 'failure', message: 'Click ID not found' });
